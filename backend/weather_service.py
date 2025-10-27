@@ -4,8 +4,8 @@ from typing import Dict, Optional
 from dotenv import load_dotenv
 import logging
 
-# Load environment variables
-load_dotenv('.env.local')
+# Load environment variables from .env.local (development) or system env (production)
+load_dotenv('.env.local')  # This will be ignored in production
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
 OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5"
 
 if not OPENWEATHER_API_KEY:
-    raise ValueError("OPENWEATHER_API_KEY not found in environment variables")
+    logger.warning("OPENWEATHER_API_KEY not found - weather features will be disabled")
 
 class WeatherService:
     """Real-time weather data integration with OpenWeather API"""

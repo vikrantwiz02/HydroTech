@@ -5,15 +5,15 @@ import os
 from bson import ObjectId
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv('.env.local')
+# Load environment variables from .env.local (development) or system env (production)
+load_dotenv('.env.local')  # This will be ignored in production
 
 # MongoDB connection string from environment
 MONGODB_URI = os.getenv('MONGODB_URI')
 DATABASE_NAME = "hydrotech"
 
 if not MONGODB_URI:
-    raise ValueError("MONGODB_URI not found in environment variables")
+    raise ValueError("MONGODB_URI not found in environment variables. Please set it in .env.local (dev) or environment (production)")
 
 class MongoDB:
     client: AsyncIOMotorClient = None

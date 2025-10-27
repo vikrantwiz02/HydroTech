@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Cloud, Droplets, Wind, Eye, Gauge } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 interface WeatherData {
   temperature: number;
   feels_like: number;
@@ -38,7 +40,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitud
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:8000/api/weather/current/${latitude}/${longitude}`
+        `${API_BASE_URL}/api/weather/current/${latitude}/${longitude}`
       );
       
       if (!response.ok) {
