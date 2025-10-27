@@ -1,0 +1,76 @@
+{
+  "model_type": "RandomForestRegressor",
+  "model_config": {
+    "n_estimators": 250,
+    "max_depth": 25,
+    "min_samples_split": 4,
+    "oob_score": 0.9117421258262709
+  },
+  "features": [
+    "latitude",
+    "longitude",
+    "month",
+    "aquifer_zone",
+    "rainfall_mm",
+    "rainfall_lag_1m",
+    "rainfall_lag_2m",
+    "rainfall_rolling_3m",
+    "rainfall_std_3m",
+    "avg_temp_c",
+    "temp_rainfall_interaction",
+    "seasonal_index"
+  ],
+  "target": "groundwater_level_m",
+  "dataset_size": {
+    "train": 7872,
+    "test": 1968,
+    "total": 9840
+  },
+  "metrics": {
+    "train": {
+      "r2": 0.9671470006831668,
+      "rmse": 1.6890562858372329,
+      "mae": 1.24628699210657
+    },
+    "test": {
+      "r2": 0.9113750572376914,
+      "rmse": 2.8085175433827585,
+      "mae": 2.1321942311969067,
+      "mape": 23.608440364374225
+    },
+    "cross_validation": {
+      "mean_r2": 0.912423386568828,
+      "std_r2": 0.0024006087919055644,
+      "mean_rmse": 2.7626817031616104,
+      "scores": [
+        0.9115728310362265,
+        0.9150358530333371,
+        0.9105527358787939,
+        0.9094977446236678,
+        0.9154577682721149
+      ]
+    },
+    "uncertainty": {
+      "prediction_std": 2.808137578124198,
+      "confidence_interval_95": 5.503949653123429
+    }
+  },
+  "feature_importance": {
+    "zone_B": 0.20975289082890589,
+    "longitude": 0.1944772296392971,
+    "latitude": 0.09736272311391388,
+    "rainfall_lag_1m": 0.07809153593880025,
+    "rainfall_lag_2m": 0.07135642199342414,
+    "rainfall_mm": 0.04937773061037348,
+    "rainfall_rolling_3m": 0.04820057608810689,
+    "avg_temp_c": 0.03644274814597453,
+    "zone_C": 0.03302693526556235,
+    "temp_rainfall_interaction": 0.032939275150667684,
+    "month_11": 0.024255729749162312,
+    "zone_D": 0.01910345774614679,
+    "month_10": 0.015825122510994796,
+    "month_9": 0.015673122039487432,
+    "month_6": 0.013636776567302339
+  },
+  "training_date": "2025-10-27T23:20:49.548803"
+}
