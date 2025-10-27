@@ -1,0 +1,30 @@
+services:services:
+
+  - type: web  - type: web
+
+    name: hydrotech-backend    name: hydrotech-backend
+
+    runtime: python    env: python
+
+    region: oregon    region: oregon
+
+    plan: free    rootDir: backend
+
+    branch: main    buildCommand: "pip install -r requirements.txt"
+
+    rootDir: backend    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+
+    buildCommand: pip install -r requirements.txt    envVars:
+
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT      - key: PYTHON_VERSION
+
+    envVars:        value: 3.8.10
+
+      - key: MONGODB_URI      - key: MONGODB_URI
+
+        sync: false        sync: false  # Set this in Render dashboard
+
+      - key: OPENWEATHER_API_KEY      - key: OPENWEATHER_API_KEY
+
+        sync: false        sync: false  # Set this in Render dashboard
+
