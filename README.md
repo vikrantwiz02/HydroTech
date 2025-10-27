@@ -120,8 +120,13 @@ AI/
 │   ├── groundwater_model.joblib # Trained model
 │   └── model_metadata.json      # Model performance metrics
 │
+├── api/                          # Vercel Serverless Functions
+│   └── index.py                 # FastAPI adapter (Mangum)
+│
 ├── Configuration Files
 │   ├── package.json             # Node.js dependencies
+│   ├── requirements.txt         # Python dependencies
+│   ├── vercel.json              # Vercel deployment config
 │   ├── tsconfig.json            # TypeScript configuration
 │   ├── vite.config.ts           # Vite build config
 │   ├── tailwind.config.js       # TailwindCSS customization
@@ -130,8 +135,35 @@ AI/
 │
 └── Documentation
     ├── README.md                # This file
+    ├── DEPLOYMENT.md            # Vercel deployment guide
     └── PROJECT_QA.md            # Comprehensive Q&A guide
 ```
+
+## 🚀 Deployment
+
+Deploy the entire application on Vercel (frontend + backend serverless functions):
+
+1. **Push to GitHub**
+   ```bash
+   git push origin main
+   ```
+
+2. **Deploy on Vercel**
+   - Import your repository at [vercel.com](https://vercel.com)
+   - Vercel auto-detects Vite (frontend) and Python functions (backend)
+   - Set environment variables in dashboard
+
+3. **Environment Variables**
+   ```
+   VITE_API_BASE_URL=/
+   VITE_GOOGLE_CLIENT_ID=your-client-id
+   MONGODB_URI=your-mongodb-uri
+   OPENWEATHER_API_KEY=your-api-key
+   ```
+
+📖 See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions.
+
+---
 
 ## 🎨 Frontend Architecture
 
