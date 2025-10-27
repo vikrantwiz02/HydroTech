@@ -15,6 +15,11 @@ import {
   Filler,
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
+import { useAuth, LoginButton, UserProfile } from './components/Auth';
+import MapVisualization from './components/MapVisualization';
+import HistoryDashboard from './components/HistoryDashboard';
+import ExportButton from './components/ExportButton';
+import { SavedPrediction } from './types';
 
 // Register ChartJS components
 ChartJS.register(
@@ -195,6 +200,8 @@ const GlassPanel: React.FC<{ children: React.ReactNode; className?: string }> = 
 
 // Header Component
 const Header: React.FC = () => {
+  const { user } = useAuth();
+  
   return (
     <motion.header
       initial={{ opacity: 0, y: -50 }}
@@ -253,6 +260,10 @@ const Header: React.FC = () => {
             
             <div className="flex items-center space-x-6">
               <StatusIndicator />
+              
+              {/* User Authentication */}
+              {user ? <UserProfile /> : <LoginButton />}
+              
               <div className="text-right bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-xl px-4 py-3">
                 <div className="text-xs text-cyan-400 font-semibold uppercase tracking-wider">ML Model v2.0</div>
                 <div className="text-xs text-green-400 flex items-center justify-end mt-1">
@@ -329,6 +340,7 @@ const PredictionForm: React.FC<{
   onPredict: (data: PredictionInput) => void;
   loading: boolean;
 }> = ({ onPredict, loading }) => {
+  const { user } = useAuth(); // Add auth hook
   const [formData, setFormData] = useState<PredictionInput>({
     rainfall: '',
     temperature: '',
@@ -338,6 +350,7 @@ const PredictionForm: React.FC<{
   });
 
   const [errors, setErrors] = useState<Partial<PredictionInput>>({});
+  const [showMap, setShowMap] = useState(false);
 
   const zones = [
     { name: 'Urban (Delhi)', lat: 28.7, lon: 77.2, code: 'A' },
@@ -363,6 +376,16 @@ const PredictionForm: React.FC<{
       latitude: lat.toString(),
       longitude: lon.toString(),
     }));
+    setShowMap(false);
+  };
+
+  const handleMapLocationSelect = (lat: number, lon: number) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: lat.toString(),
+      longitude: lon.toString(),
+    }));
+    setShowMap(false);
   };
 
   const validate = (): boolean => {
@@ -414,7 +437,7 @@ const PredictionForm: React.FC<{
         {/* Quick Zone Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-3">Quick Zone Selection</label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 mb-2">
             {zones.map((zone) => (
               <motion.button
                 key={zone.code}
@@ -433,7 +456,63 @@ const PredictionForm: React.FC<{
               </motion.button>
             ))}
           </div>
+          
+          {/* Map View Button */}
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowMap(true)}
+            className="w-full p-3 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-all flex items-center justify-center space-x-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            <span className="font-medium">View Map</span>
+          </motion.button>
         </div>
+
+        {/* Map Visualization Modal */}
+        <AnimatePresence>
+          {showMap && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => setShowMap(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-4xl"
+              >
+                <GlassPanel className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-white">Select Location on Map</h3>
+                    <button
+                      onClick={() => setShowMap(false)}
+                      className="text-gray-400 hover:text-white transition-colors"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <MapVisualization
+                    selectedLocation={formData.latitude && formData.longitude ? { 
+                      lat: parseFloat(formData.latitude), 
+                      lon: parseFloat(formData.longitude) 
+                    } : undefined}
+                    onLocationSelect={handleMapLocationSelect}
+                  />
+                </GlassPanel>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="grid grid-cols-2 gap-4">
           {/* Latitude */}
@@ -541,17 +620,17 @@ const PredictionForm: React.FC<{
         {/* Submit Button */}
         <motion.button
           type="submit"
-          disabled={loading}
-          whileHover={{ scale: loading ? 1 : 1.02 }}
-          whileTap={{ scale: loading ? 1 : 0.98 }}
+          disabled={loading || !user}
+          whileHover={{ scale: (loading || !user) ? 1 : 1.02 }}
+          whileTap={{ scale: (loading || !user) ? 1 : 0.98 }}
           className={`relative w-full py-4 rounded-xl font-bold text-white transition-all overflow-hidden ${
-            loading ? 'cursor-not-allowed' : ''
+            (!user) ? 'cursor-not-allowed opacity-50' : ''
           }`}
         >
           {/* Animated background */}
           <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500"
-            animate={loading ? {} : {
+            className={`absolute inset-0 ${!user ? 'bg-gray-600' : 'bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500'}`}
+            animate={loading || !user ? {} : {
               backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
             }}
             transition={{ duration: 3, repeat: Infinity }}
@@ -561,7 +640,7 @@ const PredictionForm: React.FC<{
           />
           
           {/* Glow effect */}
-          {!loading && (
+          {!loading && user && (
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-cyan-400/0 via-white/20 to-cyan-400/0"
               animate={{
@@ -577,7 +656,14 @@ const PredictionForm: React.FC<{
           
           {/* Button content */}
           <span className="relative z-10 flex items-center justify-center">
-            {loading ? (
+            {!user ? (
+              <>
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span className="tracking-wider">LOGIN REQUIRED</span>
+              </>
+            ) : loading ? (
               <>
                 <motion.svg 
                   className="h-5 w-5 mr-3" 
@@ -601,10 +687,24 @@ const PredictionForm: React.FC<{
           </span>
           
           {/* Shadow effect */}
-          {!loading && (
+          {!loading && user && (
             <div className="absolute inset-0 -z-10 blur-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 opacity-50" />
           )}
         </motion.button>
+        
+        {/* Login hint */}
+        {!user && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-sm text-yellow-400/80 flex items-center justify-center space-x-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Please sign in with Google to make predictions</span>
+          </motion.p>
+        )}
       </form>
     </GlassPanel>
   );
@@ -1160,6 +1260,8 @@ const App: React.FC = () => {
   const [result, setResult] = useState<DetailedResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentInput, setCurrentInput] = useState<any>(null);
+  const { user, savePrediction } = useAuth();
 
   const handlePredict = async (data: PredictionInput) => {
     setLoading(true);
@@ -1174,7 +1276,32 @@ const App: React.FC = () => {
         month: parseInt(data.month),
       });
 
-      setResult(response.data);
+      const predictionResult = response.data;
+      setResult(predictionResult);
+      
+      // Store current input for export
+      const inputData = {
+        rainfall: parseFloat(data.rainfall),
+        temperature: parseFloat(data.temperature),
+        latitude: parseFloat(data.latitude),
+        longitude: parseFloat(data.longitude),
+        month: parseInt(data.month),
+      };
+      setCurrentInput(inputData);
+      
+      // Save prediction if user is logged in
+      if (user) {
+        const savedPrediction: SavedPrediction = {
+          id: `pred_${Date.now()}`,
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email,
+          timestamp: new Date().toISOString(),
+          input: inputData,
+          result: predictionResult,
+        };
+        savePrediction(savedPrediction);
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to fetch prediction. Please check the backend connection.');
       console.error('Prediction error:', err);
@@ -1183,12 +1310,26 @@ const App: React.FC = () => {
     }
   };
 
+  const handleLoadPrediction = (result: DetailedResult, input: any) => {
+    setResult(result);
+    setCurrentInput(input);
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-white p-8">
       <AnimatedBackground />
       
       <div className="max-w-7xl mx-auto">
         <Header />
+
+        {/* Action Buttons - History and Export */}
+        <div className="mb-6 flex items-center justify-end space-x-4">
+          {/* History Dashboard Component (includes button and modal) */}
+          {user && <HistoryDashboard onLoadPrediction={handleLoadPrediction} />}
+
+          {/* Export Button - only show if there's a result */}
+          {result && currentInput && <ExportButton result={result} input={currentInput} />}
+        </div>
 
         {/* Error Display */}
         <AnimatePresence>
@@ -1289,7 +1430,85 @@ const App: React.FC = () => {
 
           {/* Right Column - Results */}
           <div className="lg:col-span-2">
-            {result ? (
+            {/* Login Prompt for non-authenticated users */}
+            {!user && !result ? (
+              <GlassPanel className="p-16 text-center relative overflow-hidden">
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.1, 1],
+                    opacity: [0.4, 0.7, 0.4],
+                  }}
+                  transition={{ 
+                    duration: 3, 
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="mb-8 relative inline-block"
+                >
+                  <div className="relative z-10 w-32 h-32 bg-gradient-to-br from-purple-400/30 to-pink-600/30 rounded-2xl flex items-center justify-center border border-purple-400/30">
+                    <svg className="w-20 h-20 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <motion.div
+                    className="absolute inset-0 bg-purple-400/20 rounded-2xl blur-2xl"
+                    animate={{ 
+                      scale: [1, 1.3, 1],
+                      opacity: [0.3, 0.6, 0.3],
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  />
+                </motion.div>
+                
+                <h3 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-3">
+                  Authentication Required
+                </h3>
+                <p className="text-gray-300 text-lg mb-6 max-w-md mx-auto">
+                  Please sign in with your Google account to access groundwater prediction features
+                </p>
+                
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-6 max-w-sm">
+                    <h4 className="text-white font-semibold mb-3 flex items-center justify-center">
+                      <svg className="w-5 h-5 mr-2 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Benefits of Signing In:
+                    </h4>
+                    <ul className="text-sm text-gray-300 space-y-2 text-left">
+                      <li className="flex items-start">
+                        <span className="text-cyan-400 mr-2">✓</span>
+                        <span>Make unlimited predictions</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-cyan-400 mr-2">✓</span>
+                        <span>Auto-save prediction history</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-cyan-400 mr-2">✓</span>
+                        <span>Export results as PDF/CSV</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-cyan-400 mr-2">✓</span>
+                        <span>Access from any device</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-cyan-400 mr-2">✓</span>
+                        <span>Track changes over time</span>
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  <div className="flex items-center justify-center">
+                    <LoginButton />
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 mt-4">
+                    🔒 Secure authentication powered by Google OAuth 2.0
+                  </p>
+                </div>
+              </GlassPanel>
+            ) : result ? (
               <ResultsDisplay result={result} />
             ) : (
               <GlassPanel className="p-16 text-center relative overflow-hidden">
