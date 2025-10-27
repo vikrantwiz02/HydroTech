@@ -2,6 +2,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "installCommand": "npm install",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./src ./public ./index.html ./package.json ./vite.config.ts",
   "rewrites": [
     {
       "source": "/api/:path*",

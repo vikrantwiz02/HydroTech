@@ -1,0 +1,16 @@
+# Ignore frontend files when deploying backend to Render
+node_modules/
+dist/
+build/
+src/
+public/
+*.tsx
+*.ts
+!backend/**/*.py
+package.json
+package-lock.json
+vite.config.ts
+tsconfig.json
+index.html
+.vercelignore
+vercel.json
