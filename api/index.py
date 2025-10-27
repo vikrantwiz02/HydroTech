@@ -4,12 +4,16 @@ Vercel Serverless Function Entry Point for FastAPI Backend
 import sys
 import os
 
+# Get the absolute path to the backend directory
+current_dir = os.path.dirname(os.path.abspath(__file__))
+backend_path = os.path.join(current_dir, '..', 'backend')
+backend_path = os.path.abspath(backend_path)
+
 # Add backend directory to Python path
-backend_path = os.path.join(os.path.dirname(__file__), '..', 'backend')
 sys.path.insert(0, backend_path)
 
-# Set working directory to backend for model loading
-os.chdir(backend_path)
+# Set environment variable for model path
+os.environ['MODEL_PATH'] = backend_path
 
 from main import app
 from mangum import Mangum
