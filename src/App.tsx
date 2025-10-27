@@ -83,26 +83,67 @@ const API_BASE_URL = 'http://localhost:8000';
 const AnimatedBackground: React.FC = () => {
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900/20 to-slate-900" />
+      {/* Gradient base */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950" />
+      
+      {/* Animated grid */}
+      <div className="absolute inset-0" style={{
+        backgroundImage: `
+          linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px)
+        `,
+        backgroundSize: '50px 50px',
+      }} />
       
       {/* Animated water ripples */}
       <motion.div
-        className="absolute top-20 left-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"
+        className="absolute top-20 left-20 w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-3xl"
         animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.5, 0.3],
+          scale: [1, 1.3, 1],
+          opacity: [0.2, 0.4, 0.2],
+          x: [0, 50, 0],
+          y: [0, 30, 0],
         }}
         transition={{
-          duration: 8,
+          duration: 15,
           repeat: Infinity,
           ease: "easeInOut",
         }}
       />
       <motion.div
-        className="absolute bottom-20 right-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"
+        className="absolute bottom-20 right-20 w-[500px] h-[500px] bg-cyan-500/20 rounded-full blur-3xl"
+        animate={{
+          scale: [1.3, 1, 1.3],
+          opacity: [0.4, 0.2, 0.4],
+          x: [0, -40, 0],
+          y: [0, -25, 0],
+        }}
+        transition={{
+          duration: 12,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+      <motion.div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-indigo-500/15 rounded-full blur-3xl"
+        animate={{
+          scale: [1, 1.4, 1],
+          opacity: [0.3, 0.5, 0.3],
+          rotate: [0, 180, 360],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+      <motion.div
+        className="absolute top-40 right-40 w-[400px] h-[400px] bg-purple-500/15 rounded-full blur-3xl"
         animate={{
           scale: [1.2, 1, 1.2],
-          opacity: [0.5, 0.3, 0.5],
+          opacity: [0.3, 0.5, 0.3],
+          x: [0, 30, 0],
+          y: [0, -30, 0],
         }}
         transition={{
           duration: 10,
@@ -110,16 +151,17 @@ const AnimatedBackground: React.FC = () => {
           ease: "easeInOut",
         }}
       />
+      
+      {/* Scanning line effect */}
       <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"
+        className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent h-32"
         animate={{
-          scale: [1, 1.3, 1],
-          opacity: [0.4, 0.6, 0.4],
+          y: ['-10%', '110%'],
         }}
         transition={{
-          duration: 12,
+          duration: 8,
           repeat: Infinity,
-          ease: "easeInOut",
+          ease: "linear",
         }}
       />
     </div>
@@ -135,9 +177,18 @@ const GlassPanel: React.FC<{ children: React.ReactNode; className?: string }> = 
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-gray-800/50 backdrop-blur-lg border border-gray-700/50 rounded-xl shadow-lg ${className}`}
+      whileHover={{ scale: 1.01 }}
+      transition={{ duration: 0.2 }}
+      className={`relative bg-gradient-to-br from-gray-900/80 via-gray-800/60 to-gray-900/80 backdrop-blur-xl border border-cyan-500/20 rounded-2xl shadow-2xl ${className}`}
+      style={{
+        boxShadow: '0 8px 32px 0 rgba(6, 182, 212, 0.15), inset 0 1px 1px 0 rgba(255, 255, 255, 0.1)',
+      }}
     >
-      {children}
+      {/* Glow effect on hover */}
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-500/0 via-cyan-500/5 to-cyan-500/0 opacity-0 hover:opacity-100 transition-opacity duration-500" />
+      <div className="relative z-10">
+        {children}
+      </div>
     </motion.div>
   );
 };
@@ -148,34 +199,71 @@ const Header: React.FC = () => {
     <motion.header
       initial={{ opacity: 0, y: -50 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-8"
+      className="mb-10"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="text-blue-400"
-          >
-            <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-            </svg>
-          </motion.div>
-          <div>
-            <h1 className="text-4xl font-bold text-white tracking-tight">
-              Hydro<span className="text-blue-400">Tech</span>
-            </h1>
-            <p className="text-gray-400 text-sm">Advanced Groundwater Prediction System</p>
-          </div>
-        </div>
+      <div className="relative">
+        {/* Glowing background effect */}
+        <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 rounded-3xl blur-2xl" />
         
-        <div className="flex items-center space-x-6">
-          <StatusIndicator />
-          <div className="text-right">
-            <div className="text-xs text-gray-500">ML Model v2.0</div>
-            <div className="text-xs text-green-400 flex items-center justify-end mt-1">
-              <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-              Online
+        <div className="relative bg-gradient-to-r from-gray-900/90 via-gray-800/90 to-gray-900/90 backdrop-blur-xl border border-cyan-500/30 rounded-2xl p-6 shadow-2xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-5">
+              {/* Animated logo */}
+              <div className="relative">
+                <motion.div
+                  animate={{ 
+                    rotate: 360,
+                    scale: [1, 1.1, 1],
+                  }}
+                  transition={{ 
+                    rotate: { duration: 20, repeat: Infinity, ease: "linear" },
+                    scale: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+                  }}
+                  className="relative z-10"
+                >
+                  <div className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/50">
+                    <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                    </svg>
+                  </div>
+                </motion.div>
+                <motion.div
+                  className="absolute inset-0 bg-cyan-400/30 rounded-xl blur-xl"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              </div>
+              
+              <div>
+                <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent tracking-tight">
+                  Hydro<span className="text-cyan-300">Tech</span>
+                </h1>
+                <div className="flex items-center space-x-2 mt-1">
+                  <motion.div
+                    className="w-2 h-2 bg-cyan-400 rounded-full"
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  <p className="text-cyan-300/80 text-sm font-medium tracking-wider uppercase">
+                    AI-Powered Groundwater Analytics
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-6">
+              <StatusIndicator />
+              <div className="text-right bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-xl px-4 py-3">
+                <div className="text-xs text-cyan-400 font-semibold uppercase tracking-wider">ML Model v2.0</div>
+                <div className="text-xs text-green-400 flex items-center justify-end mt-1">
+                  <motion.div 
+                    className="w-2 h-2 bg-green-400 rounded-full mr-2 shadow-lg shadow-green-400/50"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
+                  <span className="font-medium">System Online</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -203,14 +291,35 @@ const StatusIndicator: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex items-center space-x-2 text-sm">
-      <div className={`w-3 h-3 rounded-full ${
-        status === 'healthy' ? 'bg-green-400 animate-pulse' :
-        status === 'offline' ? 'bg-red-400' : 'bg-yellow-400'
-      }`}></div>
-      <span className="text-gray-300">
-        {status === 'healthy' ? 'Connected' : status === 'offline' ? 'Offline' : 'Connecting...'}
-      </span>
+    <div className="relative bg-gradient-to-br from-gray-800/80 to-gray-900/80 border border-cyan-500/30 rounded-xl px-4 py-3 backdrop-blur-sm">
+      <div className="flex items-center space-x-3">
+        <div className="relative">
+          <motion.div
+            className={`w-4 h-4 rounded-full ${
+              status === 'healthy' ? 'bg-green-400 shadow-lg shadow-green-400/50' :
+              status === 'offline' ? 'bg-red-400 shadow-lg shadow-red-400/50' : 'bg-yellow-400 shadow-lg shadow-yellow-400/50'
+            }`}
+            animate={status === 'healthy' ? { scale: [1, 1.2, 1] } : {}}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          {status === 'healthy' && (
+            <motion.div
+              className="absolute inset-0 bg-green-400 rounded-full"
+              animate={{ scale: [1, 2, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+          )}
+        </div>
+        <div>
+          <div className="text-xs text-gray-400 uppercase tracking-wider">Status</div>
+          <div className={`text-sm font-semibold ${
+            status === 'healthy' ? 'text-green-400' :
+            status === 'offline' ? 'text-red-400' : 'text-yellow-400'
+          }`}>
+            {status === 'healthy' ? 'Connected' : status === 'offline' ? 'Offline' : 'Connecting...'}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -289,12 +398,16 @@ const PredictionForm: React.FC<{
   return (
     <GlassPanel className="p-6">
       <div className="flex items-center space-x-3 mb-6">
-        <div className="p-2 bg-blue-500/20 rounded-lg">
-          <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <motion.div 
+          className="p-3 bg-gradient-to-br from-cyan-500/30 to-blue-500/30 rounded-xl border border-cyan-400/30"
+          animate={{ boxShadow: ['0 0 20px rgba(6, 182, 212, 0.3)', '0 0 30px rgba(6, 182, 212, 0.5)', '0 0 20px rgba(6, 182, 212, 0.3)'] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <svg className="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
-        </div>
-        <h2 className="text-2xl font-semibold text-white">Input Parameters</h2>
+        </motion.div>
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Input Parameters</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -431,27 +544,65 @@ const PredictionForm: React.FC<{
           disabled={loading}
           whileHover={{ scale: loading ? 1 : 1.02 }}
           whileTap={{ scale: loading ? 1 : 0.98 }}
-          className={`w-full py-3 rounded-lg font-semibold text-white transition-all ${
-            loading
-              ? 'bg-gray-600 cursor-not-allowed'
-              : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg shadow-blue-500/50'
+          className={`relative w-full py-4 rounded-xl font-bold text-white transition-all overflow-hidden ${
+            loading ? 'cursor-not-allowed' : ''
           }`}
         >
-          {loading ? (
-            <span className="flex items-center justify-center">
-              <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              Analyzing...
-            </span>
-          ) : (
-            <span className="flex items-center justify-center">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Generate Prediction
-            </span>
+          {/* Animated background */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500"
+            animate={loading ? {} : {
+              backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+            }}
+            transition={{ duration: 3, repeat: Infinity }}
+            style={{
+              backgroundSize: '200% 100%',
+            }}
+          />
+          
+          {/* Glow effect */}
+          {!loading && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-cyan-400/0 via-white/20 to-cyan-400/0"
+              animate={{
+                x: ['-200%', '200%'],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatDelay: 1,
+              }}
+            />
+          )}
+          
+          {/* Button content */}
+          <span className="relative z-10 flex items-center justify-center">
+            {loading ? (
+              <>
+                <motion.svg 
+                  className="h-5 w-5 mr-3" 
+                  viewBox="0 0 24 24"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </motion.svg>
+                <span className="tracking-wider">ANALYZING DATA...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span className="tracking-wider">GENERATE PREDICTION</span>
+              </>
+            )}
+          </span>
+          
+          {/* Shadow effect */}
+          {!loading && (
+            <div className="absolute inset-0 -z-10 blur-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 opacity-50" />
           )}
         </motion.button>
       </form>
@@ -510,27 +661,81 @@ const ResultsDisplay: React.FC<{ result: DetailedResult | null }> = ({ result })
       className="space-y-6"
     >
       {/* Main Prediction */}
-      <GlassPanel className="p-8 text-center">
+      <GlassPanel className="p-10 text-center relative overflow-hidden">
+        {/* Animated background particles */}
+        <motion.div
+          className="absolute inset-0 opacity-30"
+          style={{
+            background: 'radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.15) 0%, transparent 50%)',
+          }}
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{ duration: 3, repeat: Infinity }}
+        />
+        
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 15 }}
+          className="relative z-10"
         >
-          <div className="text-gray-400 text-sm uppercase tracking-wider mb-2">Predicted Groundwater Level</div>
-          <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 mb-2">
-            {result.predicted_level_meters.toFixed(2)}
-          </div>
-          <div className="text-2xl text-gray-300 mb-4">meters</div>
+          <div className="text-cyan-400 text-xs uppercase tracking-[0.3em] mb-3 font-bold">Predicted Groundwater Level</div>
           
-          <div className="flex items-center justify-center space-x-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-              <span className="text-gray-300">Confidence: <strong className="text-green-400">{(result.confidence_score * 100).toFixed(1)}%</strong></span>
-            </div>
-            <div className="w-px h-4 bg-gray-600"></div>
-            <div className="text-gray-400">
-              Zone: <strong className="text-blue-400">{result.zone_name}</strong>
-            </div>
+          {/* Holographic display effect */}
+          <div className="relative inline-block mb-4">
+            <motion.div
+              className="text-8xl font-black bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent"
+              animate={{
+                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+              }}
+              transition={{ duration: 5, repeat: Infinity }}
+              style={{
+                backgroundSize: '200% 100%',
+              }}
+            >
+              {result.predicted_level_meters.toFixed(2)}
+            </motion.div>
+            
+            {/* Glowing underline */}
+            <motion.div
+              className="h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+              animate={{
+                opacity: [0.5, 1, 0.5],
+                scaleX: [0.8, 1, 0.8],
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+          </div>
+          
+          <div className="text-3xl font-bold text-cyan-300/80 mb-6 tracking-widest">METERS</div>
+          
+          {/* Stats row */}
+          <div className="flex items-center justify-center gap-6 text-sm">
+            <motion.div 
+              className="flex items-center space-x-2 bg-green-500/10 border border-green-400/30 rounded-lg px-4 py-2"
+              whileHover={{ scale: 1.05 }}
+            >
+              <motion.div 
+                className="w-3 h-3 bg-green-400 rounded-full shadow-lg shadow-green-400/50"
+                animate={{ scale: [1, 1.3, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <span className="text-gray-300">Confidence:</span>
+              <strong className="text-green-400 text-lg">{(result.confidence_score * 100).toFixed(1)}%</strong>
+            </motion.div>
+            
+            <div className="w-px h-6 bg-cyan-500/30"></div>
+            
+            <motion.div 
+              className="flex items-center space-x-2 bg-blue-500/10 border border-blue-400/30 rounded-lg px-4 py-2"
+              whileHover={{ scale: 1.05 }}
+            >
+              <div className="w-3 h-3 bg-blue-400 rounded-sm"></div>
+              <span className="text-gray-300">Zone:</span>
+              <strong className="text-blue-400 text-lg">{result.zone_name}</strong>
+            </motion.div>
           </div>
         </motion.div>
       </GlassPanel>
@@ -543,24 +748,41 @@ const ResultsDisplay: React.FC<{ result: DetailedResult | null }> = ({ result })
           </svg>
           95% Confidence Interval
         </h3>
-        <div className="relative h-12 bg-gray-700/30 rounded-lg overflow-hidden">
-          <div className="absolute inset-0 flex items-center justify-between px-4">
-            <span className="text-sm text-gray-400">{result.prediction_interval.lower.toFixed(2)}m</span>
-            <span className="text-sm text-gray-400">{result.prediction_interval.upper.toFixed(2)}m</span>
+        
+        {/* Labels above the bar */}
+        <div className="flex items-center justify-between mb-2 px-1">
+          <div className="text-left">
+            <div className="text-xs text-cyan-400 font-semibold mb-1">Lower Bound</div>
+            <div className="text-lg font-bold text-white">{result.prediction_interval.lower.toFixed(2)}m</div>
           </div>
+          <div className="text-right">
+            <div className="text-xs text-cyan-400 font-semibold mb-1">Upper Bound</div>
+            <div className="text-lg font-bold text-white">{result.prediction_interval.upper.toFixed(2)}m</div>
+          </div>
+        </div>
+        
+        {/* Progress bar */}
+        <div className="relative h-12 bg-gray-700/30 rounded-lg overflow-hidden border border-cyan-500/20">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: '100%' }}
             transition={{ duration: 1, ease: "easeOut" }}
-            className="h-full bg-gradient-to-r from-blue-500/30 via-cyan-500/30 to-blue-500/30 backdrop-blur-sm"
+            className="h-full bg-gradient-to-r from-blue-500/40 via-cyan-500/40 to-blue-500/40 backdrop-blur-sm"
           >
             <div className="h-full flex items-center justify-center">
-              <div className="w-1 h-8 bg-white/80 rounded-full shadow-lg"></div>
+              <motion.div 
+                className="w-1 h-8 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50"
+                animate={{ 
+                  boxShadow: ['0 0 10px rgba(6, 182, 212, 0.5)', '0 0 20px rgba(6, 182, 212, 0.8)', '0 0 10px rgba(6, 182, 212, 0.5)']
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
             </div>
           </motion.div>
         </div>
-        <p className="text-xs text-gray-400 mt-2 text-center">
-          Range: {result.prediction_interval.lower.toFixed(2)}m - {result.prediction_interval.upper.toFixed(2)}m
+        
+        <p className="text-xs text-gray-400 mt-3 text-center">
+          Prediction Range: <span className="text-cyan-300 font-semibold">{result.prediction_interval.lower.toFixed(2)}m - {result.prediction_interval.upper.toFixed(2)}m</span>
         </p>
       </GlassPanel>
 
@@ -722,12 +944,32 @@ const StatisticsPanel: React.FC = () => {
 const StatCard: React.FC<{ label: string; value: string; icon: string }> = ({ label, value, icon }) => {
   return (
     <motion.div
-      whileHover={{ scale: 1.05 }}
-      className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50"
+      whileHover={{ scale: 1.05, y: -5 }}
+      className="relative bg-gradient-to-br from-gray-800/60 to-gray-900/60 rounded-xl p-5 border border-cyan-500/20 overflow-hidden group cursor-pointer"
     >
-      <div className="text-2xl mb-2">{icon}</div>
-      <div className="text-sm text-gray-400 mb-1">{label}</div>
-      <div className="text-xl font-bold text-white">{value}</div>
+      {/* Hover glow effect */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        animate={{
+          x: ['-100%', '100%'],
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          repeatDelay: 1,
+        }}
+      />
+      
+      <div className="relative z-10">
+        <div className="text-3xl mb-3 filter drop-shadow-lg">{icon}</div>
+        <div className="text-xs text-cyan-400 mb-2 uppercase tracking-wider font-semibold">{label}</div>
+        <div className="text-xl font-bold bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent break-words">
+          {value}
+        </div>
+      </div>
+      
+      {/* Corner accent */}
+      <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-cyan-500/20 to-transparent rounded-bl-full" />
     </motion.div>
   );
 };
@@ -748,7 +990,7 @@ const App: React.FC = () => {
         temperature: parseFloat(data.temperature),
         latitude: parseFloat(data.latitude),
         longitude: parseFloat(data.longitude),
-        month: data.month,
+        month: parseInt(data.month),
       });
 
       setResult(response.data);
@@ -800,25 +1042,74 @@ const App: React.FC = () => {
             {result ? (
               <ResultsDisplay result={result} />
             ) : (
-              <GlassPanel className="p-12 text-center">
+              <GlassPanel className="p-16 text-center relative overflow-hidden">
+                {/* Animated scanning lines */}
+                <motion.div
+                  className="absolute inset-0 opacity-10"
+                  style={{
+                    backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(6, 182, 212, 0.5) 25%, rgba(6, 182, 212, 0.5) 26%, transparent 27%, transparent 74%, rgba(6, 182, 212, 0.5) 75%, rgba(6, 182, 212, 0.5) 76%, transparent 77%, transparent)',
+                    backgroundSize: '50px 50px',
+                  }}
+                  animate={{
+                    y: ['0%', '100%'],
+                  }}
+                  transition={{
+                    duration: 10,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                />
+                
                 <motion.div
                   animate={{ 
-                    scale: [1, 1.1, 1],
-                    opacity: [0.5, 1, 0.5]
+                    scale: [1, 1.15, 1],
+                    opacity: [0.4, 0.8, 0.4],
+                    rotate: [0, 180, 360],
                   }}
                   transition={{ 
-                    duration: 3, 
+                    duration: 8, 
                     repeat: Infinity,
                     ease: "easeInOut"
                   }}
-                  className="mb-6"
+                  className="mb-8 relative inline-block"
                 >
-                  <svg className="w-24 h-24 mx-auto text-blue-400/50" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-                  </svg>
+                  <div className="relative z-10 w-32 h-32 bg-gradient-to-br from-cyan-400/30 to-blue-600/30 rounded-2xl flex items-center justify-center border border-cyan-400/30">
+                    <svg className="w-20 h-20 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                    </svg>
+                  </div>
+                  <motion.div
+                    className="absolute inset-0 bg-cyan-400/20 rounded-2xl blur-2xl"
+                    animate={{ 
+                      scale: [1, 1.3, 1],
+                      opacity: [0.3, 0.6, 0.3],
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  />
                 </motion.div>
-                <h3 className="text-2xl font-semibold text-gray-400 mb-2">Ready for Prediction</h3>
-                <p className="text-gray-500">Enter parameters and click "Generate Prediction" to see results</p>
+                
+                <h3 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-3">
+                  System Ready
+                </h3>
+                <p className="text-cyan-300/60 text-lg mb-4">Awaiting Input Parameters</p>
+                
+                <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+                  <motion.div
+                    className="w-2 h-2 bg-cyan-400 rounded-full"
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
+                  />
+                  <motion.div
+                    className="w-2 h-2 bg-cyan-400 rounded-full"
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
+                  />
+                  <motion.div
+                    className="w-2 h-2 bg-cyan-400 rounded-full"
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.6 }}
+                  />
+                </div>
               </GlassPanel>
             )}
           </div>
@@ -829,13 +1120,26 @@ const App: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="mt-12 text-center text-gray-500 text-sm"
+          className="mt-16"
         >
-          <div className="flex items-center justify-center space-x-2 mb-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span>Powered by Advanced Machine Learning</span>
+          <div className="relative bg-gradient-to-r from-gray-900/50 via-gray-800/50 to-gray-900/50 backdrop-blur-xl border-t border-cyan-500/20 rounded-2xl p-6">
+            <div className="flex items-center justify-center space-x-3 mb-3">
+              <motion.div
+                className="w-3 h-3 bg-green-400 rounded-full shadow-lg shadow-green-400/50"
+                animate={{ scale: [1, 1.3, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <span className="text-cyan-400/80 font-semibold tracking-wider uppercase text-sm">Powered by HydroTech</span>
+            </div>
+            <div className="flex items-center justify-center space-x-2 text-gray-500 text-xs">
+              <span>HydroTech Groundwater Prediction System</span>
+              <span className="text-cyan-500">•</span>
+              <span className="text-cyan-400">© 2025</span>
+            </div>
+            
+            {/* Decorative elements */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
           </div>
-          <p>HydroTech Groundwater Prediction System © 2025</p>
         </motion.footer>
       </div>
     </div>

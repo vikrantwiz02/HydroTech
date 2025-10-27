@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
+from contextlib import asynccontextmanager
 import pandas as pd
 import numpy as np
 import joblib
@@ -23,11 +24,53 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI
+# Global state
+model = None
+zones = None
+metadata = None
+historical_data = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    global model, zones, metadata, historical_data
+    try:
+        import os
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        logger.info("Loading ML model...")
+        model = joblib.load(os.path.join(base_dir, 'groundwater_model.joblib'))
+        logger.info("✓ Model loaded")
+        
+        logger.info("Loading zone configuration...")
+        with open(os.path.join(base_dir, 'zone_config.json')) as f:
+            zones = json.load(f)
+        logger.info(f"✓ Loaded {len(zones)} aquifer zones")
+        
+        logger.info("Loading model metadata...")
+        with open(os.path.join(base_dir, 'model_metadata.json')) as f:
+            metadata = json.load(f)
+        logger.info(f"✓ Model R² Score: {metadata['metrics']['test']['r2']:.4f}")
+        
+        logger.info("Loading historical data...")
+        historical_data = pd.read_csv(os.path.join(base_dir, 'groundwater_data.csv'))
+        logger.info(f"✓ Loaded {len(historical_data)} historical records")
+        
+    except Exception as e:
+        logger.error(f"Startup error: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown (cleanup if needed)
+    logger.info("Shutting down...")
+
+# Initialize FastAPI with lifespan
 app = FastAPI(
     title="Groundwater Prediction API",
     description="Advanced ML-based groundwater level prediction with uncertainty quantification",
-    version="2.0.0"
+    version="2.0.0",
+    lifespan=lifespan
 )
 
 # CORS
@@ -51,7 +94,7 @@ class PredictionInput(BaseModel):
     temperature: float = Field(..., ge=-10, le=50, description="Temperature in °C")
     latitude: float = Field(..., ge=-90, le=90, description="Latitude")
     longitude: float = Field(..., ge=-180, le=180, description="Longitude")
-    month: str = Field(..., description="Month (1-12)")
+    month: int = Field(..., ge=1, le=12, description="Month (1-12)")
 
 class PredictionOutput(BaseModel):
     predicted_level_meters: float
@@ -163,36 +206,6 @@ def prepare_input_features(data: PredictionInput, zone: str, month: int):
     
     return input_df
 
-# Startup
-@app.on_event("startup")
-async def load_resources():
-    global model, zones, metadata, historical_data
-    try:
-        import os
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        logger.info("Loading ML model...")
-        model = joblib.load(os.path.join(base_dir, 'groundwater_model.joblib'))
-        logger.info("✓ Model loaded")
-        
-        logger.info("Loading zone configuration...")
-        with open(os.path.join(base_dir, 'zone_config.json')) as f:
-            zones = json.load(f)
-        logger.info(f"✓ Loaded {len(zones)} aquifer zones")
-        
-        logger.info("Loading model metadata...")
-        with open(os.path.join(base_dir, 'model_metadata.json')) as f:
-            metadata = json.load(f)
-        logger.info(f"✓ Model R² Score: {metadata['metrics']['test']['r2']:.4f}")
-        
-        logger.info("Loading historical data...")
-        historical_data = pd.read_csv(os.path.join(base_dir, 'groundwater_data.csv'))
-        logger.info(f"✓ Loaded {len(historical_data)} historical records")
-        
-    except Exception as e:
-        logger.error(f"Startup error: {e}")
-        raise
-
 # API Endpoints
 @app.get("/")
 async def health_check():
@@ -242,19 +255,26 @@ async def predict_detailed(data: PredictionInput):
         raise HTTPException(503, "Model not loaded")
     
     try:
-        # Get basic prediction first
-        basic = await predict_basic(data)
-        
         month = int(data.month)
         zone, zone_name = get_aquifer_zone(data.latitude, data.longitude)
+        
+        # Prepare features
+        input_df = prepare_input_features(data, zone, month)
+        
+        # Predict
+        prediction = model.predict(input_df)[0]
+        prediction = max(2.0, min(50.0, float(prediction)))
+        
+        # Calculate confidence
+        confidence = calculate_confidence(zone, month, prediction)
         
         # Calculate prediction interval (uncertainty quantification)
         uncertainty = metadata['metrics']['uncertainty']['prediction_std']
         margin = 1.96 * uncertainty  # 95% confidence interval
         
         prediction_interval = {
-            'lower': round(max(2.0, basic.predicted_level_meters - margin), 2),
-            'upper': round(min(50.0, basic.predicted_level_meters + margin), 2)
+            'lower': round(max(2.0, prediction - margin), 2),
+            'upper': round(min(50.0, prediction + margin), 2)
         }
         
         # Feature contributions (simplified - in production would use SHAP)
@@ -266,8 +286,8 @@ async def predict_detailed(data: PredictionInput):
         }
         
         return {
-            "predicted_level_meters": basic.predicted_level_meters,
-            "confidence_score": basic.confidence_score,
+            "predicted_level_meters": round(prediction, 2),
+            "confidence_score": confidence,
             "prediction_interval": prediction_interval,
             "aquifer_zone": zone,
             "zone_name": zone_name,
