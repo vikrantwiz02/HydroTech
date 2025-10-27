@@ -355,6 +355,49 @@ async def get_zone_historical(zone_code: str, month: Optional[int] = None):
         }
     }
 
+@app.get("/api/validate/{zone_code}")
+async def validate_prediction(zone_code: str, prediction: float, month: Optional[int] = None):
+    """Validate a prediction against historical data"""
+    if historical_data is None:
+        raise HTTPException(503, "Historical data not loaded")
+    
+    zone_data = historical_data[historical_data['aquifer_zone'] == zone_code]
+    
+    if month:
+        zone_data = zone_data[zone_data['month'] == month]
+    
+    if len(zone_data) == 0:
+        raise HTTPException(404, "No data found")
+    
+    mean = float(zone_data['groundwater_level_m'].mean())
+    std = float(zone_data['groundwater_level_m'].std())
+    min_val = float(zone_data['groundwater_level_m'].min())
+    max_val = float(zone_data['groundwater_level_m'].max())
+    
+    # Calculate z-score
+    z_score = abs((prediction - mean) / std) if std > 0 else 0
+    
+    # Determine if prediction is within acceptable range
+    is_within_range = min_val <= prediction <= max_val
+    is_within_1std = abs(prediction - mean) <= std
+    is_within_2std = abs(prediction - mean) <= 2 * std
+    
+    return {
+        "zone": zone_code,
+        "prediction": round(prediction, 2),
+        "historical_mean": round(mean, 2),
+        "historical_std": round(std, 2),
+        "historical_range": {"min": round(min_val, 2), "max": round(max_val, 2)},
+        "deviation_from_mean": round(abs(prediction - mean), 2),
+        "z_score": round(z_score, 2),
+        "validation": {
+            "within_range": is_within_range,
+            "within_1_std": is_within_1std,
+            "within_2_std": is_within_2std,
+            "reliability": "high" if is_within_1std else "medium" if is_within_2std else "low"
+        }
+    }
+
 
 # Run Server
 if __name__ == "__main__":

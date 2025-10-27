@@ -859,7 +859,173 @@ const ResultsDisplay: React.FC<{ result: DetailedResult | null }> = ({ result })
           </div>
         </div>
       </GlassPanel>
+
+      {/* Prediction Validation Panel */}
+      <PredictionValidation result={result} />
     </motion.div>
+  );
+};
+
+// Prediction Validation Component
+const PredictionValidation: React.FC<{ result: DetailedResult }> = ({ result }) => {
+  // Define typical ranges for each zone
+  const zoneRanges: { [key: string]: { min: number; max: number; avg: number } } = {
+    'A': { min: 5, max: 20, avg: 11.8 },      // Urban (Delhi)
+    'B': { min: 15, max: 40, avg: 26.6 },     // Agricultural (Lucknow)
+    'C': { min: 3, max: 12, avg: 6.9 },       // Coastal (Chennai)
+    'D': { min: 4, max: 15, avg: 8.8 },       // Arid (Jaipur)
+  };
+
+  const prediction = result.predicted_level_meters;
+  const zone = result.aquifer_zone;
+  const range = zoneRanges[zone] || { min: 2, max: 50, avg: 15 };
+  
+  // Calculate validation metrics
+  const isWithinRange = prediction >= range.min && prediction <= range.max;
+  const deviationFromAvg = Math.abs(prediction - range.avg);
+  const percentDeviation = (deviationFromAvg / range.avg) * 100;
+  const isHighConfidence = result.confidence_score >= 0.75;
+  const isReasonable = percentDeviation <= 50; // Within 50% of average
+  
+  // Overall validation status
+  const validationStatus = 
+    isWithinRange && isHighConfidence && isReasonable ? 'excellent' :
+    isWithinRange && (isHighConfidence || isReasonable) ? 'good' :
+    isWithinRange ? 'acceptable' : 'warning';
+
+  const statusConfig = {
+    excellent: {
+      color: 'green',
+      icon: '✓',
+      title: 'Excellent Prediction',
+      message: 'All validation checks passed. Prediction is highly reliable.',
+      bgColor: 'bg-green-500/10',
+      borderColor: 'border-green-400/30',
+      textColor: 'text-green-400'
+    },
+    good: {
+      color: 'blue',
+      icon: '✓',
+      title: 'Good Prediction',
+      message: 'Prediction appears reasonable with good confidence.',
+      bgColor: 'bg-blue-500/10',
+      borderColor: 'border-blue-400/30',
+      textColor: 'text-blue-400'
+    },
+    acceptable: {
+      color: 'yellow',
+      icon: '!',
+      title: 'Acceptable Prediction',
+      message: 'Prediction is within range but verify additional factors.',
+      bgColor: 'bg-yellow-500/10',
+      borderColor: 'border-yellow-400/30',
+      textColor: 'text-yellow-400'
+    },
+    warning: {
+      color: 'red',
+      icon: '⚠',
+      title: 'Unusual Prediction',
+      message: 'Prediction outside typical range. Double-check input parameters.',
+      bgColor: 'bg-red-500/10',
+      borderColor: 'border-red-400/30',
+      textColor: 'text-red-400'
+    }
+  };
+
+  const status = statusConfig[validationStatus];
+
+  return (
+    <GlassPanel className={`p-6 ${status.bgColor} border-2 ${status.borderColor}`}>
+      <div className="flex items-start space-x-4">
+        <motion.div 
+          className={`p-3 ${status.bgColor} border ${status.borderColor} rounded-xl`}
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <div className={`text-3xl ${status.textColor}`}>{status.icon}</div>
+        </motion.div>
+        
+        <div className="flex-1">
+          <h3 className={`text-xl font-bold ${status.textColor} mb-2 flex items-center`}>
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Prediction Validation
+          </h3>
+          
+          <p className="text-gray-300 mb-4">{status.message}</p>
+          
+          {/* Validation Metrics */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className={`${status.bgColor} border ${status.borderColor} rounded-lg p-3`}>
+              <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Range Check</div>
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${isWithinRange ? 'bg-green-400' : 'bg-red-400'}`} />
+                <span className={`font-semibold ${isWithinRange ? 'text-green-400' : 'text-red-400'}`}>
+                  {isWithinRange ? 'Within Expected Range' : 'Outside Range'}
+                </span>
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                Expected: {range.min.toFixed(1)}m - {range.max.toFixed(1)}m
+              </div>
+            </div>
+            
+            <div className={`${status.bgColor} border ${status.borderColor} rounded-lg p-3`}>
+              <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Confidence Level</div>
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${isHighConfidence ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                <span className={`font-semibold ${isHighConfidence ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {isHighConfidence ? 'High Confidence' : 'Moderate Confidence'}
+                </span>
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                Score: {(result.confidence_score * 100).toFixed(1)}%
+              </div>
+            </div>
+            
+            <div className={`${status.bgColor} border ${status.borderColor} rounded-lg p-3`}>
+              <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Zone Average</div>
+              <div className="flex items-center space-x-2">
+                <span className="text-cyan-400 font-bold text-lg">{range.avg.toFixed(2)}m</span>
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                Historical average for {result.zone_name}
+              </div>
+            </div>
+            
+            <div className={`${status.bgColor} border ${status.borderColor} rounded-lg p-3`}>
+              <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Deviation</div>
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${isReasonable ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                <span className={`font-semibold ${isReasonable ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {percentDeviation.toFixed(1)}%
+                </span>
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                From zone average
+              </div>
+            </div>
+          </div>
+          
+          {/* Validation Tips */}
+          <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-4">
+            <div className="text-sm font-semibold text-white mb-2 flex items-center">
+              <svg className="w-4 h-4 mr-2 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              How to Validate:
+            </div>
+            <ul className="text-xs text-gray-300 space-y-1 list-disc list-inside">
+              <li>Compare with historical data for the same zone and season</li>
+              <li>Check if prediction aligns with recent rainfall patterns</li>
+              <li>Verify input parameters are accurate and realistic</li>
+              <li>Consider local geological and environmental factors</li>
+              <li>Cross-reference with government groundwater monitoring data</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </GlassPanel>
   );
 };
 
@@ -903,6 +1069,21 @@ const StatisticsPanel: React.FC = () => {
         </div>
         Model Statistics
       </h3>
+
+      {/* Model Accuracy Info */}
+      <div className="mb-6 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-xl p-4">
+        <div className="flex items-start space-x-3">
+          <div className="text-2xl">📊</div>
+          <div>
+            <div className="text-sm font-semibold text-cyan-400 mb-1">Model Accuracy Indicator</div>
+            <div className="text-xs text-gray-300 space-y-1">
+              <div>• <strong className="text-white">R² Score {(stats.model.performance.r2 * 100).toFixed(1)}%</strong> - Model explains {(stats.model.performance.r2 * 100).toFixed(1)}% of variance in data</div>
+              <div>• <strong className="text-white">RMSE {stats.model.performance.rmse.toFixed(2)}m</strong> - Average prediction error is ±{stats.model.performance.rmse.toFixed(2)} meters</div>
+              <div>• Trained on <strong className="text-white">{stats.dataset.total_samples.toLocaleString()}</strong> real historical samples</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <StatCard
@@ -1034,6 +1215,75 @@ const App: React.FC = () => {
             <PredictionForm onPredict={handlePredict} loading={loading} />
             <div className="mt-6">
               <StatisticsPanel />
+            </div>
+            
+            {/* Validation Guide */}
+            <div className="mt-6">
+              <GlassPanel className="p-6 bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                  <div className="p-2 bg-purple-500/20 rounded-lg mr-3">
+                    <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  How to Verify Results
+                </h3>
+                
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start space-x-3">
+                    <div className="text-cyan-400 font-bold text-lg">1</div>
+                    <div>
+                      <div className="text-white font-semibold mb-1">Check Validation Status</div>
+                      <div className="text-gray-300 text-xs">After prediction, review the "Prediction Validation" panel for automatic checks</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <div className="text-cyan-400 font-bold text-lg">2</div>
+                    <div>
+                      <div className="text-white font-semibold mb-1">Compare with Zone Average</div>
+                      <div className="text-gray-300 text-xs">Prediction should be near the historical average for that zone</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <div className="text-cyan-400 font-bold text-lg">3</div>
+                    <div>
+                      <div className="text-white font-semibold mb-1">Check Confidence Score</div>
+                      <div className="text-gray-300 text-xs">Higher confidence (&gt;75%) indicates more reliable prediction</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <div className="text-cyan-400 font-bold text-lg">4</div>
+                    <div>
+                      <div className="text-white font-semibold mb-1">Review Seasonal Factors</div>
+                      <div className="text-gray-300 text-xs">Monsoon months should show higher levels</div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-purple-400/20">
+                    <div className="text-xs text-purple-300 space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-400 rounded-full" />
+                        <span><strong>Green</strong> - Excellent, highly reliable</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full" />
+                        <span><strong>Blue</strong> - Good, reasonable prediction</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+                        <span><strong>Yellow</strong> - Acceptable, verify inputs</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-red-400 rounded-full" />
+                        <span><strong>Red</strong> - Unusual, check parameters</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </GlassPanel>
             </div>
           </div>
 
