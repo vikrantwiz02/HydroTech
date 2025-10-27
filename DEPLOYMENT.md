@@ -1,33 +1,35 @@
 # HydroTech Deployment Guide
 
-## Architecture (Vercel-Only)
+## Architecture
 
-- **Frontend**: Vercel (React + Vite static hosting)
-- **Backend**: Vercel Serverless Functions (FastAPI)
-- **Database**: MongoDB Atlas (already set up)
-- **Repository Structure**: Monorepo (frontend + backend in same repo)
+- **Frontend**: Vercel (React + Vite) - FREE
+- **Backend**: Render.com (FastAPI + Python) - FREE  
+- **Database**: MongoDB Atlas (already set up) - FREE
+- **Total Cost**: $0/month ✅
 
 ---
 
-## Important: Vercel Serverless Architecture
+## ⚠️ Why Not Vercel-Only?
 
-Your project deploys entirely on Vercel:
-```
-HydroTech/
-├── src/              # Frontend (React)
-├── backend/          # Backend (FastAPI)
-├── api/              # Vercel serverless functions
-│   └── index.py      # FastAPI adapter (Mangum)
-├── package.json      # Frontend dependencies
-├── requirements.txt  # Backend Python dependencies
-└── vercel.json       # Unified deployment config
-```
+Vercel serverless functions have a **250MB unzipped size limit**. Our ML backend (scikit-learn + numpy + pandas) is approximately **300MB**, which exceeds this limit. 
 
-**How it works:**
-1. **Frontend**: Vite builds static files to `dist/` (served via Vercel CDN)
-2. **Backend**: FastAPI runs as serverless functions via `/api/index.py` (Python 3.9 runtime)
-3. **Routing**: All `/api/*` requests are routed to serverless backend
-4. **Adapter**: Mangum converts FastAPI ASGI app to AWS Lambda/Vercel compatible handler
+**Attempted solutions that don't work:**
+- ❌ Lighter dependencies → scikit-learn alone is 150MB
+- ❌ Model optimization → already using joblib compression
+- ❌ Vercel Pro → still has same 250MB limit
+
+**Solution:** Split deployment (both platforms have FREE tiers!)
+
+---
+
+## Important: Render.com is FREE!
+
+**Render Free Tier:**
+- ✅ 512MB RAM (perfect for ML models!)
+- ✅ 750 hours/month (enough for 24/7 operation)
+- ✅ No credit card required
+- ✅ Auto SSL/HTTPS
+- ⚠️ Sleeps after 15min idle (wakes in 30-60 seconds)
 
 ---
 
