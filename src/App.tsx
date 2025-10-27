@@ -19,6 +19,9 @@ import { useAuth, LoginButton, UserProfile } from './components/Auth';
 import MapVisualization from './components/MapVisualization';
 import HistoryDashboard from './components/HistoryDashboard';
 import ExportButton from './components/ExportButton';
+import ForecastingPanel from './components/ForecastingPanel';
+import { WeatherWidget } from './components/WeatherWidget';
+// import { useWebSocket } from './hooks/useWebSocket'; // Temporarily disabled
 import { SavedPrediction } from './types';
 
 // Register ChartJS components
@@ -1261,7 +1264,38 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentInput, setCurrentInput] = useState<any>(null);
+  // const [notifications, setNotifications] = useState<Array<{id: string, message: string, level: string}>>([]); // Disabled with WebSocket
   const { user, savePrediction } = useAuth();
+
+  // WebSocket connection - TEMPORARILY DISABLED to fix error spam
+  // Uncomment when backend WebSocket is ready and tested
+  /*
+  const { isConnected } = useWebSocket({
+    url: 'ws://localhost:8000/ws/predictions',
+    userId: user?.id,
+    onPredictionUpdate: (data) => {
+      // Show notification when new prediction is made by any user
+      if (data.userId !== user?.id) {
+        addNotification(`New prediction in ${data.result.zone_name}`, 'info');
+      }
+    },
+    onSystemNotification: (message, level) => {
+      addNotification(message, level);
+    },
+  });
+  */
+
+  // Notification system - disabled with WebSocket
+  /*
+  const addNotification = (message: string, level: string) => {
+    const id = `notif_${Date.now()}`;
+    setNotifications(prev => [...prev, { id, message, level }]);
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
+  };
+  */
 
   const handlePredict = async (data: PredictionInput) => {
     setLoading(true);
@@ -1300,7 +1334,17 @@ const App: React.FC = () => {
           input: inputData,
           result: predictionResult,
         };
+        
+        // Save to local state
         savePrediction(savedPrediction);
+        
+        // Save to MongoDB
+        try {
+          await axios.post(`${API_BASE_URL}/api/predictions/save`, savedPrediction);
+        } catch (dbError) {
+          console.error('Failed to save to database:', dbError);
+          // Continue even if DB save fails
+        }
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to fetch prediction. Please check the backend connection.');
@@ -1318,6 +1362,46 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-900 text-white p-8">
       <AnimatedBackground />
+      
+      {/* Notifications - Top Right */}
+      <div className="fixed top-4 right-4 z-50 space-y-2 max-w-md">
+        <AnimatePresence>
+          {/* WebSocket Connection Status - DISABLED */}
+          {/* 
+          {isConnected && (
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="bg-green-500/20 border border-green-500/50 rounded-lg px-4 py-2 backdrop-blur-sm flex items-center gap-2"
+            >
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-green-300 text-sm font-medium">Live Updates Active</span>
+            </motion.div>
+          )}
+          */}
+          
+          {/* Notifications - Disabled with WebSocket */}
+          {/*
+          {notifications.map((notif) => (
+            <motion.div
+              key={notif.id}
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className={`${
+                notif.level === 'error' ? 'bg-red-500/20 border-red-500/50 text-red-300' :
+                notif.level === 'warning' ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300' :
+                notif.level === 'success' ? 'bg-green-500/20 border-green-500/50 text-green-300' :
+                'bg-blue-500/20 border-blue-500/50 text-blue-300'
+              } border rounded-lg px-4 py-3 backdrop-blur-sm`}
+            >
+              <p className="text-sm font-medium">{notif.message}</p>
+            </motion.div>
+          ))}
+          */}
+        </AnimatePresence>
+      </div>
       
       <div className="max-w-7xl mx-auto">
         <Header />
@@ -1354,6 +1438,17 @@ const App: React.FC = () => {
           {/* Left Column - Input Form */}
           <div className="lg:col-span-1">
             <PredictionForm onPredict={handlePredict} loading={loading} />
+            
+            {/* Weather Widget - show when there's currentInput with coordinates */}
+            {currentInput && currentInput.latitude && currentInput.longitude && (
+              <div className="mt-6">
+                <WeatherWidget
+                  latitude={currentInput.latitude}
+                  longitude={currentInput.longitude}
+                />
+              </div>
+            )}
+            
             <div className="mt-6">
               <StatisticsPanel />
             </div>
@@ -1509,7 +1604,18 @@ const App: React.FC = () => {
                 </div>
               </GlassPanel>
             ) : result ? (
-              <ResultsDisplay result={result} />
+              <div className="space-y-6">
+                <ResultsDisplay result={result} />
+                
+                {/* Time-Series Forecasting Panel */}
+                {user && result.aquifer_zone && (
+                  <ForecastingPanel
+                    zone={result.aquifer_zone}
+                    zoneName={result.zone_name}
+                    userId={user.id}
+                  />
+                )}
+              </div>
             ) : (
               <GlassPanel className="p-16 text-center relative overflow-hidden">
                 {/* Animated scanning lines */}

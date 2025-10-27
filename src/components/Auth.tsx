@@ -52,7 +52,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
+    setSavedPredictions([]);
     localStorage.removeItem('hydrotech_user');
+    localStorage.removeItem('hydrotech_predictions');
+    // Reload page to clear all state
+    window.location.reload();
   };
 
   const savePrediction = (prediction: SavedPrediction) => {

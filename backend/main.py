@@ -5,10 +5,14 @@ Features:
 - Real-time ML predictions with uncertainty quantification
 - Detailed analytics and feature contributions
 - Zone-based historical data endpoints
+- MongoDB database integration
+- Time-series forecasting
+- Real-time weather API integration
+- WebSocket support for live updates
 - Comprehensive error handling and logging
 - Production-ready with CORS and validation
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
@@ -19,6 +23,13 @@ import joblib
 import json
 import logging
 from datetime import datetime
+import asyncio
+
+# Import database and forecasting modules
+from database import MongoDB, save_prediction_to_db, get_user_predictions, get_predictions_by_zone, get_zone_historical_data, save_user_to_db
+from forecasting import forecaster
+from weather_service import weather_service
+from websocket_manager import manager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -35,6 +46,12 @@ async def lifespan(app: FastAPI):
     # Startup
     global model, zones, metadata, historical_data
     try:
+        # Connect to MongoDB
+        await MongoDB.connect_db()
+        
+        # Initialize weather service
+        await weather_service.init_session()
+        
         import os
         base_dir = os.path.dirname(os.path.abspath(__file__))
         
@@ -62,7 +79,9 @@ async def lifespan(app: FastAPI):
     
     yield
     
-    # Shutdown (cleanup if needed)
+    # Shutdown (cleanup)
+    await MongoDB.close_db()
+    await weather_service.close_session()
     logger.info("Shutting down...")
 
 # Initialize FastAPI with lifespan
@@ -397,6 +416,323 @@ async def validate_prediction(zone_code: str, prediction: float, month: Optional
             "reliability": "high" if is_within_1std else "medium" if is_within_2std else "low"
         }
     }
+
+
+# ==================== DATABASE ENDPOINTS ====================
+
+@app.post("/api/user/login")
+async def user_login(user_data: dict):
+    """Save/update user in database on login"""
+    try:
+        await save_user_to_db(user_data)
+        return {"status": "success", "message": "User logged in"}
+    except Exception as e:
+        logger.error(f"User login error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/predictions/save")
+async def save_prediction(prediction_data: dict):
+    """Save prediction to MongoDB and broadcast via WebSocket"""
+    try:
+        prediction_id = await save_prediction_to_db(prediction_data)
+        
+        # Broadcast to all connected clients
+        broadcast_data = {
+            **prediction_data,
+            'prediction_id': prediction_id,
+            'saved_at': datetime.utcnow().isoformat()
+        }
+        await manager.broadcast_prediction_update(broadcast_data)
+        
+        return {
+            "status": "success",
+            "prediction_id": prediction_id,
+            "message": "Prediction saved successfully"
+        }
+    except Exception as e:
+        logger.error(f"Save prediction error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/predictions/user/{user_id}")
+async def get_predictions(user_id: str, limit: int = 50):
+    """Get all predictions for a user"""
+    try:
+        predictions = await get_user_predictions(user_id, limit)
+        return {
+            "status": "success",
+            "count": len(predictions),
+            "predictions": predictions
+        }
+    except Exception as e:
+        logger.error(f"Get predictions error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/predictions/user/{user_id}/zone/{zone}")
+async def get_predictions_by_zone_endpoint(user_id: str, zone: str, limit: int = 50):
+    """Get predictions filtered by zone"""
+    try:
+        predictions = await get_predictions_by_zone(user_id, zone, limit)
+        return {
+            "status": "success",
+            "zone": zone,
+            "count": len(predictions),
+            "predictions": predictions
+        }
+    except Exception as e:
+        logger.error(f"Get zone predictions error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== FORECASTING ENDPOINTS ====================
+
+@app.post("/api/forecast/zone/{zone}")
+async def forecast_zone_levels(zone: str, months_ahead: int = 6, user_id: Optional[str] = None):
+    """
+    Forecast future groundwater levels for a zone
+    
+    Parameters:
+    - zone: Aquifer zone code (A, B, C, D)
+    - months_ahead: Number of months to forecast (default: 6)
+    - user_id: Optional user ID to use personal history
+    """
+    try:
+        if zone not in zones:
+            raise HTTPException(status_code=400, detail=f"Invalid zone: {zone}")
+        
+        # Get historical data
+        if user_id:
+            # Use user's personal predictions
+            historical = await get_predictions_by_zone(user_id, zone, limit=100)
+        else:
+            # Use global zone data
+            historical = await get_zone_historical_data(zone, days=90)
+        
+        # Generate forecast
+        forecasts = forecaster.forecast_future_levels(historical, zone, months_ahead)
+        
+        # Analyze trend
+        trend_analysis = forecaster.analyze_trend(historical)
+        
+        return {
+            "status": "success",
+            "zone": zone,
+            "zone_name": zones[zone]['name'],
+            "historical_data_points": len(historical),
+            "forecasts": forecasts,
+            "trend_analysis": trend_analysis,
+            "generated_at": datetime.utcnow().isoformat()
+        }
+    
+    except Exception as e:
+        logger.error(f"Forecast error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/forecast/compare")
+async def compare_zone_forecasts(months_ahead: int = 6):
+    """Compare forecasts across all zones"""
+    try:
+        all_forecasts = {}
+        
+        for zone_code in zones.keys():
+            historical = await get_zone_historical_data(zone_code, days=90)
+            forecasts = forecaster.forecast_future_levels(historical, zone_code, months_ahead)
+            trend = forecaster.analyze_trend(historical)
+            
+            all_forecasts[zone_code] = {
+                "zone_name": zones[zone_code]['name'],
+                "forecasts": forecasts,
+                "trend": trend['trend'],
+                "average_level": trend.get('average_level', 0)
+            }
+        
+        return {
+            "status": "success",
+            "zones": all_forecasts,
+            "months_ahead": months_ahead,
+            "generated_at": datetime.utcnow().isoformat()
+        }
+    
+    except Exception as e:
+        logger.error(f"Compare forecasts error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== WEATHER API ENDPOINTS ====================
+
+@app.get("/api/weather/current/{lat}/{lon}")
+async def get_current_weather(lat: float, lon: float):
+    """Get current weather data for location"""
+    try:
+        weather_data = await weather_service.get_current_weather(lat, lon)
+        if weather_data:
+            return {
+                "status": "success",
+                "data": weather_data,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Weather data not available")
+    except Exception as e:
+        logger.error(f"Weather API error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/weather/forecast/{lat}/{lon}")
+async def get_weather_forecast(lat: float, lon: float, days: int = 5):
+    """Get weather forecast for location"""
+    try:
+        forecast_data = await weather_service.get_forecast(lat, lon, days)
+        if forecast_data:
+            return {
+                "status": "success",
+                "data": forecast_data,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Forecast data not available")
+    except Exception as e:
+        logger.error(f"Forecast API error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/weather/prediction-data/{lat}/{lon}")
+async def get_weather_for_prediction(lat: float, lon: float):
+    """Get weather data formatted for ML prediction"""
+    try:
+        weather_data = await weather_service.get_weather_for_prediction(lat, lon)
+        if weather_data:
+            return {
+                "status": "success",
+                "data": weather_data,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Weather data not available")
+    except Exception as e:
+        logger.error(f"Weather prediction data error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== WEBSOCKET ENDPOINTS ====================
+
+@app.websocket("/ws/predictions")
+async def websocket_predictions(websocket: WebSocket, user_id: Optional[str] = None):
+    """
+    WebSocket endpoint for real-time updates
+    Sends: prediction updates, weather updates, forecast updates, system notifications
+    """
+    # If user_id wasn't provided as a function argument, try extracting from query params
+    try:
+        if not user_id:
+            q_user = websocket.query_params.get('user_id')
+            if q_user:
+                user_id = q_user
+    except Exception:
+        # ignore if query params unavailable
+        pass
+
+    await manager.connect(websocket, user_id)
+    
+    try:
+        # Send welcome message
+        await manager.send_personal_message({
+            'type': 'connection_success',
+            'message': 'Connected to real-time updates',
+            'timestamp': datetime.utcnow().isoformat()
+        }, websocket)
+        
+        # Keep connection alive and handle incoming messages
+        while True:
+            try:
+                # Receive message from client
+                data = await websocket.receive_json()
+                message_type = data.get('type')
+                
+                if message_type == 'ping':
+                    # Respond to ping
+                    await manager.send_personal_message({
+                        'type': 'pong',
+                        'timestamp': datetime.utcnow().isoformat()
+                    }, websocket)
+                
+                elif message_type == 'request_weather':
+                    # Send weather update
+                    lat = data.get('lat')
+                    lon = data.get('lon')
+                    if lat and lon:
+                        weather_data = await weather_service.get_current_weather(lat, lon)
+                        if weather_data:
+                            await manager.send_personal_message({
+                                'type': 'weather_update',
+                                'data': weather_data,
+                                'timestamp': datetime.utcnow().isoformat()
+                            }, websocket)
+                
+                elif message_type == 'subscribe_zone':
+                    # Subscribe to zone updates
+                    zone = data.get('zone')
+                    await manager.send_personal_message({
+                        'type': 'subscription_success',
+                        'zone': zone,
+                        'message': f'Subscribed to {zone} zone updates',
+                        'timestamp': datetime.utcnow().isoformat()
+                    }, websocket)
+                
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                logger.error(f"WebSocket message error: {str(e)}")
+                await manager.send_personal_message({
+                    'type': 'error',
+                    'message': str(e),
+                    'timestamp': datetime.utcnow().isoformat()
+                }, websocket)
+    
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, user_id)
+        logger.info(f"WebSocket disconnected: user_id={user_id}")
+    except Exception as e:
+        logger.error(f"WebSocket error: {str(e)}")
+        manager.disconnect(websocket, user_id)
+
+
+@app.post("/api/broadcast/prediction")
+async def broadcast_prediction_update(prediction_data: dict):
+    """Broadcast new prediction to all connected WebSocket clients"""
+    try:
+        await manager.broadcast_prediction_update(prediction_data)
+        return {"status": "success", "message": "Prediction broadcasted"}
+    except Exception as e:
+        logger.error(f"Broadcast error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== BACKGROUND TASKS ====================
+
+async def periodic_weather_updates():
+    """Background task to send periodic weather updates"""
+    while True:
+        try:
+            # Update weather for all zones every 30 minutes
+            for zone_code, zone_info in zones.items():
+                lat = sum(zone_info['lat_range']) / 2
+                lon = sum(zone_info['lon_range']) / 2
+                
+                weather_data = await weather_service.get_current_weather(lat, lon)
+                if weather_data:
+                    weather_data['zone'] = zone_code
+                    weather_data['zone_name'] = zone_info['name']
+                    await manager.broadcast_weather_update(weather_data)
+            
+            # Wait 30 minutes
+            await asyncio.sleep(1800)
+        except Exception as e:
+            logger.error(f"Periodic weather update error: {str(e)}")
+            await asyncio.sleep(60)  # Retry after 1 minute on error
+
+
+# Start background tasks
+@app.on_event("startup")
+async def start_background_tasks():
+    """Start background tasks on server startup"""
+    asyncio.create_task(periodic_weather_updates())
 
 
 # Run Server
