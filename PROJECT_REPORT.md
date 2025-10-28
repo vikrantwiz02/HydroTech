@@ -26,10 +26,8 @@
 ## 1. Executive Summary
 
 **Project Name:** HydroTech - Advanced Groundwater Prediction System  
-**Domain:** Environmental Science & Water Resource Management  
 **Type:** Full-Stack Machine Learning Web Application  
-**Development Period:** October 2025  
-**Team Size:** 1 Full-Stack Developer
+**Development Period:** October 2025 
 
 ### Project at a Glance
 
