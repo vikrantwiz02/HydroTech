@@ -184,9 +184,7 @@ AI/
 │
 └── Documentation
     ├── README.md                # This file
-    ├── PROJECT_REPORT.md        # Part 1: Architecture & Tech Stack
-    ├── PROJECT_REPORT_PART2.md  # Part 2: ML Pipeline & Frontend
-    └── PROJECT_REPORT_PART3.md  # Part 3: Backend, Deployment & Q&A
+    └── PROJECT_REPORT.md        
 ```
 
 ## 🚀 Deployment
