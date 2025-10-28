@@ -1,6 +1,6 @@
 # 🌊 HydroTech - Comprehensive Project Report
 
-**Advanced Groundwater Prediction System using Machine Learning**
+**Groundwater Prediction System using Machine Learning**
 
 ---
 
@@ -19,8 +19,7 @@
 11. [Deployment Strategy](#deployment-strategy)
 12. [Performance Metrics](#performance-metrics)
 13. [Testing & Validation](#testing--validation)
-14. [Future Enhancements](#future-enhancements)
-15. [Q&A for Invigilators](#qa-for-invigilators)
+14. [Conclusion](#conclusion)
 
 ---
 
@@ -2249,74 +2248,6 @@ git push origin main
 - Frontend: https://hydro-tech-mu.vercel.app
 - Backend: https://hydrotech.onrender.com
 - Database: MongoDB Atlas (always on)
-
-**Total time:** ~5-7 minutes
-
----
-
-### 13.4 Future Enhancement Questions
-
-**Q13: What are your future plans for this project?**
-
-**A:**
-
-**Short-term (v2.1) - 1 month:**
-- [ ] Advanced map with zone boundaries (Leaflet/Mapbox)
-- [ ] PDF/CSV export for predictions
-- [ ] Enhanced charts (time-series line charts)
-- [ ] Dark/light theme toggle
-
-**Medium-term (v2.5) - 3 months:**
-- [ ] LSTM model for time-series (better forecasting)
-- [ ] Real historical data integration (government APIs)
-- [ ] Alert system for critical levels (email/SMS)
-- [ ] Mobile app (React Native)
-- [ ] Multi-language support (Hindi, regional languages)
-
-**Long-term (v3.0) - 6 months:**
-- [ ] Satellite imagery integration (NDVI, soil moisture)
-- [ ] Ensemble models (Random Forest + XGBoost + LSTM)
-- [ ] Government partnership (official data access)
-- [ ] Public API for researchers
-- [ ] Docker + Kubernetes deployment
-
-**Q14: How would you scale this to handle 1 million users?**
-
-**A:**
-
-**Infrastructure:**
-1. **Frontend:**
-   - Keep on Vercel (handles millions via CDN)
-   - Add Redis for caching
-   - Service worker for offline support
-
-2. **Backend:**
-   - Migrate to AWS/GCP (from Render free tier)
-   - Load balancer + 5-10 instances
-   - Horizontal scaling (Kubernetes)
-   - Database sharding (by zone/region)
-
-3. **Database:**
-   - Upgrade to MongoDB M10 cluster (dedicated)
-   - Read replicas for queries
-   - Write sharding by userId
-   - Archival strategy (move old predictions to cold storage)
-
-4. **Caching:**
-   - Redis for frequently accessed predictions
-   - CDN for static assets
-   - API response caching (5 min TTL)
-
-**Cost Estimate:**
-- AWS EC2: $50/month (5 t3.micro instances)
-- MongoDB M10: $57/month
-- Redis: $15/month
-- **Total: ~$120/month** for 1M users
-
-**Performance:**
-- Response time: <50ms (with caching)
-- Throughput: 10,000 req/sec
-- Uptime: 99.9%
 
 ---
 
