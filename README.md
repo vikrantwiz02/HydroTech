@@ -455,8 +455,8 @@ git push origin main
 ```json
 {
   "id": "google-oauth-id",
-  "name": "John Doe",
-  "email": "john@example.com",
+  "name": "Vikrant Kumar",
+  "email": "vikrantkrd@gmail.com",
   "picture": "https://..."
 }
 ```
@@ -468,8 +468,8 @@ git push origin main
 ```json
 {
   "userId": "google-oauth-id",
-  "userName": "John Doe",
-  "userEmail": "john@example.com",
+  "userName": "Vikrant Kumar",
+  "userEmail": "vikrantkrd@gmail.com",
   "timestamp": "2025-10-28T10:30:00.000Z",
   "input": {...},
   "result": {...}

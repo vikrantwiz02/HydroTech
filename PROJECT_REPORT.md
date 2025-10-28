@@ -1325,8 +1325,8 @@ const { user, login, logout, savedPredictions, savePrediction } = useAuth();
 {
   "_id": ObjectId("..."),
   "id": "google-oauth-id",
-  "name": "John Doe",
-  "email": "john@example.com",
+  "name": "Vikrant Kumar",
+  "email": "vikrantkrd@gmail.com",
   "picture": "https://...",
   "last_login": ISODate("2025-10-28T...")
 }
@@ -1342,8 +1342,8 @@ const { user, login, logout, savedPredictions, savePrediction } = useAuth();
 {
   "_id": ObjectId("..."),
   "userId": "google-oauth-id",
-  "userName": "John Doe",
-  "userEmail": "john@example.com",
+  "userName": "Vikrant Kumar",
+  "userEmail": "vikrantkrd@gmail.com",
   "timestamp": "2025-10-28T10:30:00.000Z",
   "created_at": ISODate("2025-10-28T..."),
   "input": {
