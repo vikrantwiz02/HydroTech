@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import axios from 'axios';
 import { User, SavedPrediction } from '../types';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 interface AuthContextType {
   user: User | null;
-  login: (credential: string) => void;
+  login: (credential: string) => Promise<void>;
   logout: () => void;
   savePrediction: (prediction: SavedPrediction) => void;
   savedPredictions: SavedPrediction[];
@@ -27,17 +30,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Load user from localStorage
     const savedUser = localStorage.getItem('hydrotech_user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    
-    // Load predictions from localStorage
-    const saved = localStorage.getItem('hydrotech_predictions');
-    if (saved) {
-      setSavedPredictions(JSON.parse(saved));
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+      
+      // Fetch predictions from database for this user
+      const fetchPredictions = async () => {
+        try {
+          const response = await axios.get(`${API_BASE_URL}/api/predictions/user/${parsedUser.id}`);
+          if (response.data.predictions && response.data.predictions.length > 0) {
+            setSavedPredictions(response.data.predictions);
+            localStorage.setItem('hydrotech_predictions', JSON.stringify(response.data.predictions));
+            console.log(`✅ Loaded ${response.data.predictions.length} predictions from database`);
+          }
+        } catch (error) {
+          console.error('Failed to fetch predictions from database:', error);
+          // Fall back to localStorage
+          const saved = localStorage.getItem('hydrotech_predictions');
+          if (saved) {
+            setSavedPredictions(JSON.parse(saved));
+          }
+        }
+      };
+      
+      fetchPredictions();
     }
   }, []);
 
-  const login = (credential: string) => {
+  const login = async (credential: string) => {
     // Decode JWT token
     const payload = JSON.parse(atob(credential.split('.')[1]));
     const newUser: User = {
@@ -46,8 +65,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: payload.email,
       picture: payload.picture,
     };
+    
+    // Save user to localStorage
     setUser(newUser);
     localStorage.setItem('hydrotech_user', JSON.stringify(newUser));
+    
+    // Save user to MongoDB backend
+    try {
+      await axios.post(`${API_BASE_URL}/api/user/login`, newUser);
+      console.log('✅ User saved to database');
+      
+      // Fetch user's prediction history from database
+      const response = await axios.get(`${API_BASE_URL}/api/predictions/user/${newUser.id}`);
+      if (response.data.predictions && response.data.predictions.length > 0) {
+        setSavedPredictions(response.data.predictions);
+        localStorage.setItem('hydrotech_predictions', JSON.stringify(response.data.predictions));
+        console.log(`✅ Loaded ${response.data.predictions.length} predictions from database`);
+      }
+    } catch (error) {
+      console.error('Failed to sync with database:', error);
+      // Continue with login even if database sync fails
+    }
   };
 
   const logout = () => {
