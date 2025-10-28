@@ -1,0 +1,36 @@
+# Backend files (deployed on Render)
+backend/
+
+# Python files
+*.py
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist-python/
+build-python/
+*.joblib
+
+# Python virtual environments
+venv/
+env/
+ENV/
+
+# Python dependencies
+requirements.txt
+.python-version
+
+# Render configuration
+render.yaml
+Procfile
+
+# Data files
+*.csv
+
+# Documentation
+DEPLOYMENT.md
+VERCEL_LIMITATION.md
